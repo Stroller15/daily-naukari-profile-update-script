@@ -2,11 +2,11 @@ const puppeteer = require("puppeteer");
 const path = require("path");
 
 // Naukri credentials
-const EMAIL = "shubhamverma6351@gmail.com";
-const PASSWORD = "8gKreNFU!!ReTgA";
+const EMAIL = "PUT_YOUR_NAUKARI_PROFILE_EMAIL_HERE";
+const PASSWORD = "2#Re#PUT_YOUR_NAUKARI_PROFILE_PASSWORD_HERE";
 
 // Path to your resume file
-const RESUME_PATH = path.join(__dirname, "Shubham_Verma_SDE.pdf");
+const RESUME_PATH = path.join(__dirname, "Shubham_Verma_SDE_2025.pdf");
 
 // Helper function to delay execution
 function delay(time) {
@@ -15,7 +15,7 @@ function delay(time) {
 
 async function updateNaukriProfile() {
   const browser = await puppeteer.launch({
-    headless: false, // Changed to false for better debugging
+    headless: true, 
     args: ["--start-maximized", "--disable-notifications"],
     defaultViewport: null,
   });
