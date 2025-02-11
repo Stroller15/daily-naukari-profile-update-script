@@ -3,7 +3,7 @@ const path = require("path");
 
 // Naukri credentials
 const EMAIL = "PUT_YOUR_NAUKARI_PROFILE_EMAIL_HERE";
-const PASSWORD = "2#Re#PUT_YOUR_NAUKARI_PROFILE_PASSWORD_HERE";
+const PASSWORD = "PUT_YOUR_NAUKARI_PROFILE_PASSWORD_HERE";
 
 // Path to your resume file
 const RESUME_PATH = path.join(__dirname, "Shubham_Verma_SDE_2025.pdf");
@@ -15,16 +15,33 @@ function delay(time) {
 
 async function updateNaukriProfile() {
   const browser = await puppeteer.launch({
-    headless: true, 
-    args: ["--start-maximized", "--disable-notifications"],
-    defaultViewport: null,
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--disable-gpu",
+      "--window-size=1920,1080",
+    ],
   });
 
   const page = await browser.newPage();
 
   try {
+    // Set user agent to mimic real browser
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    );
+
+    // Set viewport
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+    });
+
     // Set longer default timeout
-    page.setDefaultTimeout(60000);
+    page.setDefaultTimeout(90000);
 
     // Enable request interception to handle navigation issues
     await page.setRequestInterception(true);
@@ -38,90 +55,111 @@ async function updateNaukriProfile() {
 
     console.log("Navigating to login page...");
     await page.goto("https://www.naukri.com/nlogin/login", {
-      waitUntil: "networkidle2",
-      timeout: 60000,
+      waitUntil: "networkidle0",
+      timeout: 90000,
     });
 
-    // Wait for either email input or alternate login form
+    // Add extra delay after initial page load
+    await delay(5000);
+
+    // Wait for login form with longer timeout
     console.log("Waiting for login form...");
-    await Promise.race([
-      page.waitForSelector("#usernameField", { visible: true }),
-      page.waitForSelector(
-        'input[placeholder="Enter your active Email ID / Username"]',
-        { visible: true }
-      ),
-    ]);
+    await page.waitForFunction(
+      () => {
+        const emailInput =
+          document.querySelector("#usernameField") ||
+          document.querySelector(
+            'input[placeholder="Enter your active Email ID / Username"]'
+          );
+        const passwordInput =
+          document.querySelector("#passwordField") ||
+          document.querySelector('input[placeholder="Enter your password"]');
+        return emailInput && passwordInput;
+      },
+      { timeout: 90000 }
+    );
 
-    // Find the correct input fields
-    const emailInput =
-      (await page.$("#usernameField")) ||
-      (await page.$(
-        'input[placeholder="Enter your active Email ID / Username"]'
-      ));
-    const passwordInput =
-      (await page.$("#passwordField")) ||
-      (await page.$('input[placeholder="Enter your password"]'));
+    // Type credentials with human-like delays
+    console.log("Entering credentials...");
+    await page.type(
+      '#usernameField, input[placeholder="Enter your active Email ID / Username"]',
+      EMAIL,
+      { delay: 100 }
+    );
+    await delay(1000);
+    await page.type(
+      '#passwordField, input[placeholder="Enter your password"]',
+      PASSWORD,
+      { delay: 100 }
+    );
+    await delay(1000);
 
-    if (!emailInput || !passwordInput) {
-      throw new Error("Could not find login form fields");
-    }
-
-    // Login to Naukri
+    // Click login button and handle navigation
     console.log("Attempting login...");
-    await emailInput.type(EMAIL, { delay: 100 });
-    await passwordInput.type(PASSWORD, { delay: 100 });
-
-    // Find and click the login button
-    const loginButton =
-      (await page.$('button[type="submit"]')) ||
-      (await page.$('button:has-text("Login")'));
-    if (!loginButton) {
-      throw new Error("Login button not found");
-    }
-
-    await loginButton.click();
-
-    // Wait for navigation after login
-    await Promise.race([
-      page.waitForNavigation({ waitUntil: "networkidle2", timeout: 60000 }),
-      page.waitForSelector(".nI-gNb-drawer__bars", {
-        visible: true,
-        timeout: 60000,
+    await Promise.all([
+      // Click the login button
+      page.evaluate(() => {
+        const loginButton =
+          document.querySelector('button[type="submit"]') ||
+          document.querySelector('button:contains("Login")');
+        loginButton.click();
       }),
+      // Wait for network to be idle
+      page
+        .waitForNavigation({ waitUntil: "networkidle0", timeout: 90000 })
+        .catch(() => {}),
     ]);
 
-    console.log("Navigating to profile page...");
-    await page.goto("https://www.naukri.com/mnjuser/profile", {
-      waitUntil: "networkidle2",
-      timeout: 60000,
+    // Add delay after login attempt
+    await delay(10000);
+
+    // Verify login success by checking multiple indicators
+    const isLoggedIn = await page.evaluate(() => {
+      return !!(
+        document.querySelector(".nI-gNb-drawer__bars") ||
+        document.querySelector(".user-name") ||
+        document.querySelector('[href*="logout"]') ||
+        window.location.href.includes("my.naukri.com")
+      );
     });
+
+    if (!isLoggedIn) {
+      throw new Error("Login verification failed");
+    }
+
+    console.log("Successfully logged in, navigating to profile...");
+    await page.goto("https://www.naukri.com/mnjuser/profile", {
+      waitUntil: "networkidle0",
+      timeout: 90000,
+    });
+
+    await delay(5000);
 
     // Take screenshot for debugging
     await page.screenshot({ path: "profile_page.png", fullPage: true });
 
-    // Wait for and find the resume update button
+    // Wait for and find the resume update button with improved selector
     console.log("Looking for resume update button...");
-    const updateResumeButton = await Promise.race([
-      page.waitForSelector('input[type="button"].dummyUpload', {
-        visible: true,
-        timeout: 60000,
-      }),
-      page.waitForSelector('button:has-text("UPDATE RESUME")', {
-        visible: true,
-        timeout: 60000,
-      }),
-    ]);
+    await page.waitForFunction(
+      () => {
+        const button =
+          document.querySelector('input[type="button"].dummyUpload') ||
+          document.querySelector('button:contains("UPDATE RESUME")');
+        return button && button.offsetParent !== null;
+      },
+      { timeout: 90000 }
+    );
 
-    if (!updateResumeButton) {
-      throw new Error("Update Resume button not found");
-    }
-
-    // Scroll to button and click
-    await updateResumeButton.evaluate((button) => {
-      button.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    // Add delay before clicking
     await delay(2000);
-    await updateResumeButton.click();
+
+    // Click the update button using JavaScript
+    await page.evaluate(() => {
+      const button =
+        document.querySelector('input[type="button"].dummyUpload') ||
+        document.querySelector('button:contains("UPDATE RESUME")');
+      button.click();
+    });
 
     // Handle file upload
     console.log("Attempting to upload resume...");
@@ -129,23 +167,27 @@ async function updateNaukriProfile() {
       visible: true,
       timeout: 30000,
     });
+
     if (!fileInput) {
       throw new Error("File input not found");
     }
 
     await fileInput.uploadFile(RESUME_PATH);
-    await delay(10000); // Longer delay for upload completion
+
+    // Wait for upload completion with longer delay
+    await delay(20000);
 
     console.log("Resume update completed successfully!");
   } catch (error) {
     console.error("Detailed error:", error);
     // Take error screenshot
     await page.screenshot({ path: "error_state.png", fullPage: true });
+    throw error;
   } finally {
-    await delay(5000); // Give time to see the final state
+    await delay(5000);
     await browser.close();
   }
 }
 
 // Run the function
-updateNaukriProfile();
+updateNaukriProfile().catch(console.error);
