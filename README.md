@@ -6,7 +6,7 @@ This repository contains a Node.js script that automates the process of updating
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Before you begin, ensure you have the following installed
 
 - [Node.js](https://nodejs.org/) (v14 or higher)
 - [npm](https://www.npmjs.com/) (usually comes with Node.js)

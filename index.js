@@ -2,8 +2,8 @@ const puppeteer = require("puppeteer");
 const path = require("path");
 
 // Naukri credentials
-const EMAIL = "PUT_YOUR_NAUKARI_PROFILE_EMAIL_HERE";
-const PASSWORD = "PUT_YOUR_NAUKARI_PROFILE_PASSWORD_HERE";
+const EMAIL = "shubhamverma6351@gmail.com";
+const PASSWORD = "2#Re#iVLaeAEiR7";
 
 // Path to your resume file
 const RESUME_PATH = path.join(__dirname, "Shubham_Verma_SDE_2025.pdf");
